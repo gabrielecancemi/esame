@@ -1,0 +1,275 @@
+------------------ CONTROLLER ---------------------------
+
+
+
+RIEMPIRE DD ---------------------------------------------
+
+def fill_dd_Codins(self):
+        self._view.ddCodins.options.clear()
+        self._view.ddCodins.value = None
+        self._ddCodinsValue = None
+
+        for c in self._model.getAllCorsi():
+            self._view.ddCodins.options.append(ft.dropdown.Option(
+                key = c.codins,
+                data = c,
+                on_click = self._choiceDDCodins
+            ))
+        self._view.update_page()
+
+def _choiceDDCodins(self, e):
+        # salvare la variabile nella classe controller
+        self._ddCodinsValue = e.control.data
+        print(self._ddCodinsValue)
+
+
+
+HADLE CREA GRAFO ----------------------------------------
+
+self._view.txt_result.controls.clear()
+store = self._ddStoreValue
+giorni = self._view._txtIntK.value
+
+if store is None:
+    self._view.txt_result.controls.append(ft.Text("Selezionare uno store", color="red"))
+    self._view.update_page()
+    return
+
+if giorni is None or giorni == "":
+    self._view.txt_result.controls.append(ft.Text("Inserire un numero di giorni", color="red"))
+    self._view.update_page()
+    return
+
+try:
+    giorni = int(giorni)
+except:
+    self._view.txt_result.controls.append(ft.Text("Inserire un numero di giorni intero", color="red"))
+    self._view.update_page()
+    return
+
+if giorni < 0:
+    self._view.txt_result.controls.append(ft.Text("Inserire un numero di giorni positivo", color="red"))
+    self._view.update_page()
+    return
+
+self._model.crea_grafo(store, giorni)
+
+n, m = self._model.dim_grafo()
+self._view.txt_result.controls.append(ft.Text("Grafo correttamente creato:", color="green"))
+self._view.txt_result.controls.append(ft.Text(f"Numero di nodi: {n}"))
+self._view.txt_result.controls.append(ft.Text(f"Numero di archi: {m}"))
+self._view.update_page()
+
+
+
+
+
+
+------------------ MODEL --------------------------------
+
+
+CREAZIONE GRAFO -----------------------------------------
+
+def crea_grafo(self):
+    self._grafo.clear()
+    #self.id_ordini = {}
+
+def dim_grafo(self):
+    return len(self._grafo.nodes), len(self._grafo.edges)
+
+
+
+DETTAGLI GRAFO -----------------------------------------
+
+def get_dettagli(self):
+    archi = [(a, b, self._grafo[a][b]["weight"]) for a, b in self._grafo.edges]
+    archi.sort(key=lambda x: x[2], reverse=True)
+    componenti = list(nx.connected_components(self._grafo))
+    componenti.sort(key=lambda x:len(x), reverse=True)
+    maggiore = componenti[0]
+    res = []
+    for n in maggiore:
+        res.append((n, self._grafo.degree(n)))
+    res.sort(key=lambda x:x[1], reverse=True)
+
+    if len(archi) > 3:
+        return archi[0:3], len(componenti), res
+    else:
+        return archi, len(componenti), res
+
+
+
+RICORSIONE MASSIMIZZAZIONE -----------------------------
+
+def get_ottimo(self, partenza):
+    self._percorso_ottimo = []
+    self._costo_ottimo = 0
+
+    self._ricorsione([partenza], 0)
+    res = []
+    for i in range(1, len(self._percorso_ottimo)):
+        a = self._percorso_ottimo[i-1]
+        b = self._percorso_ottimo[i]
+        res.append((a, b, self._grafo[a][b]["weight"]))
+
+    return res, self._costo_ottimo
+
+def _ricorsione(self, parziale, costo):
+    if costo > self._costo_ottimo:
+        self._costo_ottimo = costo
+        self._percorso_ottimo = copy.deepcopy(parziale)
+
+    for n in self._grafo.neighbors(parziale[-1]):
+        if n not in parziale:
+            nuovo = self._grafo[parziale[-1]][n]["weight"]
+            if len(parziale) <= 1 or nuovo < self._grafo[parziale[-2]][parziale[-1]]["weight"]:
+                parziale.append(n)
+                self._ricorsione(parziale, costo + nuovo)
+                parziale.pop()
+
+
+
+
+
+
+------------------ DAO ----------------------------------
+
+@staticmethod
+def get_corsi(pd):
+    cnx = DBConnect.get_connection()
+    cursor = cnx.cursor(dictionary=True)
+
+    query = """SELECT c.*, count(*) as n
+                FROM corso c, iscrizione i 
+                WHERE c.codins = i.codins 
+                and c.pd = %s
+                group by c.*"""
+
+    cursor.execute(query, (pd,))
+
+    res = []
+    for row in cursor:
+        res.append( (Corso(codins = row["codins"],   
+                            crediti = row["crediti"],
+                            nome = row["nome"],
+                            pd = row["pd"]),
+                     row["n"] ))
+
+    cursor.close()
+    cnx.close()
+    return res
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------- EXTRA --------------------
+
+
+ALTERNATIVA A ITERTOOLS --------------------------------
+
+for i in range(0, len(self._nodes) - 1):
+            for j in range(i + 1, len(self._nodes)):
+
+
+
+RICORSIONE CON CALCOLO SUCCESSORI ----------------------
+
+def trova_cammino(self):
+    self._cammino_ottimo = []
+    self._peso_ottimo = 0
+    for n in self._grafo.nodes():
+        nuovi_successori = self._calcola_successori_ammissibili(n, [n])
+        self._ricorsione([n], nuovi_successori)
+    return self._cammino_ottimo, self._peso_ottimo
+
+def _ricorsione(self, parziale, successori):
+    # caso terminale
+    if len(successori) == 0:
+        if len(parziale) > len(self._cammino_ottimo):
+            self._cammino_ottimo = copy.deepcopy(parziale)
+            self._peso_ottimo = self._peso_cammino(self._cammino_ottimo)
+        elif len(parziale) == len(self._cammino_ottimo) and self._peso_cammino(parziale) < self._peso_ottimo:
+            self._cammino_ottimo = copy.deepcopy(parziale)
+            self._peso_ottimo = self._peso_cammino(self._cammino_ottimo)
+    # caso ricorsivo
+    else:
+        for n in successori:
+            parziale.append(n)
+            nuovi_successori = self._calcola_successori_ammissibili(n, parziale)
+            self._ricorsione(parziale, nuovi_successori)
+            parziale.pop()
+
+
+
+RICORSIONE MINIMIZZAZIONE -----------------------------
+
+def getListaCostruttoriOttima(self, k):
+    self._optListaCostruttori = []
+    self._optScore = 365 * 100  # 100 years in days
+
+    # Load oldest driver DOB for each constructor
+    DAO.getOldestDriverPerConstructor(self._year1, self._year2, self._idMap)
+
+    components = list(nx.connected_components(self._graph))
+
+    if k > len(components):
+        return None, 0
+
+    parziale = []
+    self._ricorsione(components, k, parziale, 0)
+    return self._optListaCostruttori, self._optScore
+
+def _ricorsione(self, componenti, k, parziale, index_componente):
+    # Base case: found k constructors
+    if len(parziale) == k:
+        # Check if all constructors have oldest_driver_dob
+        dobs = [c.oldest_driver_dob for c in parziale if c.oldest_driver_dob is not None]
+        if len(dobs) != k:
+            return  # Skip if some constructors don't have data
+
+        diff_attuale = (max(dobs) - min(dobs)).days
+
+        if diff_attuale < self._optScore:
+            self._optScore = diff_attuale
+            self._optListaCostruttori = copy.deepcopy(parziale)
+        return
+
+    # Termination conditions
+    if index_componente >= len(componenti):
+        return
+    if (len(componenti) - index_componente) < (k - len(parziale)):
+        return
+
+    # Option 1: Skip this component
+    self._ricorsione(componenti, k, parziale, index_componente + 1)
+
+    # Option 2: Choose one constructor from this component
+    componente_corrente = componenti[index_componente]
+    for costruttore in componente_corrente:
+        if costruttore.oldest_driver_dob is not None:
+            parziale.append(costruttore)
+            self._ricorsione(componenti, k, parziale, index_componente + 1)
+            parziale.pop()
+
+
+
+
+
