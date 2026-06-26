@@ -190,7 +190,7 @@ for i in range(0, len(self._nodes) - 1):
 
 
 
-ALTERNATIVA A "SUCCESSORS" PER RICERCA CAMMINO + LUNGO DA 1 SORGENTE --------------------
+RICERCA CAMMINO + LUNGO DA 1 SORGENTE ---------------------------------------------------------------------------------------------------------------
 
 def getCammino(self, sourceStr):
         source = self._idMap[int(sourceStr)]
