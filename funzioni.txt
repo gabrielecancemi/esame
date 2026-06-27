@@ -58,6 +58,9 @@ n, m = self._model.dim_grafo()
 self._view.txt_result.controls.append(ft.Text("Grafo correttamente creato:", color="green"))
 self._view.txt_result.controls.append(ft.Text(f"Numero di nodi: {n}"))
 self._view.txt_result.controls.append(ft.Text(f"Numero di archi: {m}"))
+
+# CONTROLLARE LISTE VUOTE
+
 self._view.update_page()
 
 
