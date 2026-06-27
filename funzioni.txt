@@ -7,20 +7,20 @@ RIEMPIRE DD ---------------------------------------------
 def fill_dd_Codins(self):
         self._view.ddCodins.options.clear()
         self._view.ddCodins.value = None
-        self._ddCodinsValue = None
+        self._dd_Codins_value = None
 
         for c in self._model.getAllCorsi():
             self._view.ddCodins.options.append(ft.dropdown.Option(
                 key = c.codins,
                 data = c,
-                on_click = self._choiceDDCodins
+                on_click = self._choice_dd
             ))
         self._view.update_page()
 
-def _choiceDDCodins(self, e):
+def _choice_dd(self, e):
         # salvare la variabile nella classe controller
-        self._ddCodinsValue = e.control.data
-        print(self._ddCodinsValue)
+        self._dd_Codins_value = e.control.data
+        print(self._dd_Codins_value)
 
 
 
