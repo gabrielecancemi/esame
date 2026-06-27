@@ -1,0 +1,19 @@
+from dataclasses import dataclass
+
+
+@dataclass
+class InvoiceLine:
+    InvoiceLineId: int
+    InvoiceId: int    # "Invoice"
+    TrackId: int     # "Track"
+    UnitPrice: float
+    Quantity: int
+
+    def __hash__(self):
+        return hash(self.InvoiceLineId)
+
+    def __eq__(self, other):
+        return self.InvoiceLineId == other.InvoiceLineId
+
+    def __str__(self):
+        return f"{self.InvoiceLineId}"
