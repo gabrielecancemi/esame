@@ -123,12 +123,23 @@ def _ricorsione(self, parziale, costo):
         self._percorso_ottimo = copy.deepcopy(parziale)
 
     for n in self._grafo.neighbors(parziale[-1]):
-        if n not in parziale:
+        if n not in parziale:          # NODI NON RIPETUTI
             nuovo = self._grafo[parziale[-1]][n]["weight"]
+            # primo controllo solo se su archi
             if len(parziale) <= 1 or nuovo < self._grafo[parziale[-2]][parziale[-1]]["weight"]:
                 parziale.append(n)
-                self._ricorsione(parziale, costo + nuovo)
+                if self.is_semplice(parziale):     # ARCHI NON RIPETUTI
+                        self._ricorsione(parziale, costo + nuovo)
                 parziale.pop()
+
+def is_semplice(self, parziale):
+    if len(parziale) < 3:
+        return True
+
+    ultimo = (parziale[-2], parziale[-1])
+    archi = [(parziale[i], parziale[i + 1]) for i in range(len(parziale) - 2)]
+
+    return ultimo not in archi
 
 
 
